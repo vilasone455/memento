@@ -1,0 +1,9 @@
+{
+    "memento:mementos": {
+      "NAME": "Mementos",
+      "FLAVOR": "Echoes from the past.",
+      "DESCRIPTIONS": [
+        "Upon pickup, choose any relic unlocked by this mod. You will receive a penalty based on the relic's rarity."
+      ]
+    }
+}  

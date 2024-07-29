@@ -1,0 +1,113 @@
+package patches;
+
+import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
+import com.evacipated.cardcrawl.modthespire.lib.SpireEnum;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
+import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.curses.Clumsy;
+import com.megacrit.cardcrawl.cards.curses.CurseOfTheBell;
+import com.megacrit.cardcrawl.core.Settings;
+import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.BlightHelper;
+import com.megacrit.cardcrawl.helpers.FontHelper;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
+import com.megacrit.cardcrawl.neow.NeowReward;
+import com.megacrit.cardcrawl.neow.NeowReward.NeowRewardDef;
+import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.relics.AbstractRelic.RelicTier;
+import com.megacrit.cardcrawl.rewards.RewardItem;
+import com.megacrit.cardcrawl.vfx.cardManip.ShowCardAndObtainEffect;
+
+import vfx.ObtainRelicLater;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+public class NeowRewardPatches {
+    //private static final UIStrings uiStrings = CardCrawlGame.languagePack.getUIString("aspiration:NeowRewards");
+    //public static final String[] TEXT = uiStrings.TEXT;
+    //Crashes when trying to load event because this is creates before UIStrings
+	//Thanks Reina :D
+	@SpireEnum
+    public static NeowReward.NeowRewardType NOSTALGIA;
+    @SpireEnum
+    public static NeowReward.NeowRewardType DSIX;
+    @SpireEnum
+    public static NeowReward.NeowRewardDrawback PUNISHING;
+
+    @SpirePatch(clz = NeowReward.class, method = "getRewardDrawbackOptions")
+    public static class NewDrawback {
+        @SpirePostfixPatch
+        public static ArrayList<NeowReward.NeowRewardDrawbackDef> patch(ArrayList<NeowReward.NeowRewardDrawbackDef> __result, NeowReward __instance) {
+            String tmp;
+            tmp = FontHelper.colorString("Punishment based on relic rarity", "r") + " ";
+
+            __result.add(new NeowReward.NeowRewardDrawbackDef(PUNISHING, "[ " + tmp));
+            return __result;
+        }
+    }
+	
+	@SpirePatch(
+            clz = NeowReward.class,
+            method = "getRewardOptions"
+    )
+    public static class AddRewards {
+	    @SpirePostfixPatch
+        public static ArrayList<NeowRewardDef> patch(ArrayList<NeowRewardDef> __result, NeowReward __instance, final int category) {
+            if (category == 2 && __instance.drawback == PUNISHING) {
+                __result.clear();
+                String tmp;
+
+                tmp = FontHelper.colorString("Get Currently Selected Relic", "g");
+
+                __result.add(new NeowRewardDef(DSIX, tmp + " ]"));
+            }
+
+            return __result;
+        }
+    }
+	
+	@SpirePatch(
+            clz = NeowReward.class,
+            method = "activate"
+    )
+    public static class ActivatePatch {
+	    @SpirePrefixPatch
+        public static void patch(NeowReward __instance) {
+
+	        if(__instance.drawback == PUNISHING) {
+                // hasHubris = Loader.isModLoaded("hubris");
+                try {
+                    SpireConfig config = new SpireConfig("Memento", "Config");
+                    String relic = "";
+                    if(config.has("curRelic")){
+                        relic = config.getString("curRelic");
+                    }
+                    AbstractRelic targetRelic = RelicLibrary.getRelic(relic).makeCopy();
+                    if(targetRelic.tier == RelicTier.RARE){
+                        AbstractCard curse = new CurseOfTheBell();
+                        AbstractDungeon.effectList.add(new ShowCardAndObtainEffect(curse.makeStatEquivalentCopy() , Settings.WIDTH/ 2.0F  , Settings.HEIGHT / 2.0F));
+
+                    }else if (targetRelic.tier == RelicTier.BOSS){
+                        AbstractDungeon.player.decreaseMaxHealth(12);
+                        AbstractCard curse = new CurseOfTheBell();
+                        AbstractDungeon.effectList.add(new ShowCardAndObtainEffect(curse.makeStatEquivalentCopy() , Settings.WIDTH/ 2.0F  , Settings.HEIGHT / 2.0F));
+
+                    }
+                    AbstractDungeon.effectsQueue.add(0, new ObtainRelicLater(targetRelic));
+
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+
+
+            
+        }
+    }
+} 
