@@ -66,6 +66,10 @@ public class RelicSelectScreen implements ScrollBarListener
         scrollBar = new ScrollBar(this);
     }
 
+    public void setSelectCount(int val){
+        this.selectCount = val;
+    }
+
     public void open(ArrayList<AbstractRelic> relics)
     {
         AbstractDungeon.isScreenUp = true;
@@ -150,7 +154,7 @@ public class RelicSelectScreen implements ScrollBarListener
             clickStartedRelic = null;
         }
         boolean isScrollingScrollBar = scrollBar.update();
-        if (!isScrollingScrollBar) {
+        if (!isScrollingScrollBar && relics.size() > 80) {
             updateScrolling();
         }
         InputHelper.justClickedLeft = false;

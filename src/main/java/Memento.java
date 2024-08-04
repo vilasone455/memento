@@ -17,6 +17,7 @@ import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.localization.RelicStrings;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.relics.AbstractRelic.RelicTier;
+import com.megacrit.cardcrawl.rewards.RewardSave;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.screens.options.DropdownMenu;
 import com.megacrit.cardcrawl.characters.AbstractPlayer.PlayerClass;
@@ -35,6 +36,11 @@ import basemod.interfaces.PostDungeonInitializeSubscriber;
 import basemod.interfaces.PostInitializeSubscriber;
 // import relics.Mementos;
 import relics.Mementos;
+import rewards.CustomRewardTypes;
+import rewards.ShopRelicReward;
+import utility.MementoState;
+import utility.RelicManager;
+import utility.Save;
 
 import java.util.Random;
 
@@ -119,17 +125,7 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
     	// BaseMod.addRelic(new Mementos(), RelicType.SHARED);
     }
 
-    public static void initialize() { // ModTheSpire will call this method to initialize because of the annotation we
-        @SuppressWarnings("unused")
-        Memento mod = new Memento();
-        try {
-            config = new SpireConfig("Memento", "Config");
-            metaProgressions = new SpireConfig("Memento", "Progression");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
+    
 
     private ArrayList<String> getRelicUnlockeds() {
         String relicStrs = "";
@@ -146,8 +142,24 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
         return arrayList;
     }
 
+    public static void initialize() { // ModTheSpire will call this method to initialize because of the annotation we
+        @SuppressWarnings("unused")
+        Memento mod = new Memento();
+        try {
+            config = new SpireConfig("Memento", "Config");
+            config.setBool("obtainRelicLater", false);
+            metaProgressions = new SpireConfig("Memento", "Progression");
+            config.save();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     @Override
     public void receivePostInitialize() {
+
 
         ModPanel settingsPanel = new ModPanel();
 
@@ -157,39 +169,45 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
                 });
 
 
-        String curRelic = "Anchor";
+        // String curRelic = "Anchor";
         settingsPanel.addUIElement(label);
-        if(config.has("curRelic")){
-            System.out.println("Pass .");
+        // if(config.has("curRelic")){
+        //     System.out.println("Pass .");
 
-            curRelic = config.getString("curRelic");
-            System.out.println("That's ." + curRelic);
+        //     curRelic = config.getString("curRelic");
+        //     System.out.println("That's ." + curRelic);
 
-        }
+        // }
 
-        ArrayList<String> relicUnlockeds = getRelicUnlockeds();
+        // String relicStrs = "";
+        // if (metaProgressions.has("relics")) {
+        //     relicStrs = metaProgressions.getString("relics");
+        // } else {
+        //     relicStrs = "Anchor";
+        // }
+        // Save.saveString(relicStrs);
+        ArrayList<String> relicUnlockeds = RelicManager.getUnlockedRelics();
 
-        Integer curIndex = 0;
+        // Integer curIndex = 0;
 
-        for (int i = 0; i < relicUnlockeds.size(); i++) {
-            String item = relicUnlockeds.get(i);
+        // for (int i = 0; i < relicUnlockeds.size(); i++) {
+        //     String item = relicUnlockeds.get(i);
 
-            if(curRelic.equals(item)){
-                curIndex = i;
-                break;
-            }
-        }
-        System.out.println("Current index is ." + curIndex);
+        //     if(curRelic.equals(item)){
+        //         curIndex = i;
+        //         break;
+        //     }
+        // }
 
         relicSelectDropdown = new DropdownMenu((dropdownMenu, index, s) -> {
-            config.setString("curRelic", s);
-            try {
-                config.save();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // config.setString("curRelic", s);
+            // try {
+            //     config.save();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
         }, relicUnlockeds, FontHelper.tipBodyFont, Settings.CREAM_COLOR);
-        relicSelectDropdown.setSelectedIndex(curIndex);
+        // relicSelectDropdown.setSelectedIndex(curIndex);
         IUIElement wrapperDropdown = new IUIElement() {
             public void render(SpriteBatch sb) {
                 relicSelectDropdown.render(sb, DROPDOWN_X * Settings.xScale, DROPDOWN_Y * Settings.yScale);
@@ -212,7 +230,8 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
         BaseMod.registerModBadge(ImageMaster.loadImage(assetPath("images/memento/modBadge.png")), "Memento", "Top",
                 "TODO", settingsPanel);
 
-
+                // RelicManager.addTwoItem();
+        this.registerCustomRewards();
     }
 
     @Override
@@ -244,12 +263,13 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
             int randomIndex = random.nextInt(relicPools.size());
             String selectedRelicId = relicPools.get(randomIndex);
             relicUnlockeds.add(selectedRelicId);
-            metaProgressions.setString("relics", convertArrayListToString(relicUnlockeds));
-            try {
-                metaProgressions.save();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            Save.addRelicAndSave(relicUnlockeds, selectedRelicId);
+            // metaProgressions.setString("relics", convertArrayListToString(relicUnlockeds));
+            // try {
+            //     metaProgressions.save();
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
 
             System.out.println("Randomly selected relic ID: " + selectedRelicId);
         } else {
@@ -268,7 +288,8 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
 
     @Override
     public void receivePostDungeonInitialize() {
-        
+        MementoState.saveStateVariable("mementoType", "ObtainInstant");
+
             // addDialogOption(((NeowReward)this.rewards.get(3)).optionLabel);
 
         // TODO Auto-generated method stub
@@ -292,5 +313,23 @@ public class Memento implements PostCreateStartingRelicsSubscriber, PostInitiali
 			// }
 
     }
+
+        private void registerCustomRewards() {
+        
+        BaseMod.registerCustomReward(
+            CustomRewardTypes.SHOP_RELIC, 
+            (rewardSave) -> { // this handles what to do when this quest type is loaded.
+                return new ShopRelicReward(rewardSave.id);
+            }, 
+            (customReward) -> { // this handles what to do when this quest type is saved.
+                String relicId = ((ShopRelicReward) customReward).curRelic;
+
+                return new RewardSave(customReward.type.toString(), relicId);
+            });
+
+
+    }
+
+
 
 }
